@@ -1,1 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SwitchY</title>
+    <style>
+        #canvas {
+            border: 1px solid black;
+            cursor: crosshair;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function () {
+    var video = document.getElementById('video');
+    var canvas = document.getElementById('canvas');
+    var context = canvas.getContext('2d');
+    var isCaptureEnabled = false;
 
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(function (stream) {
+            video.srcObject = stream;
+            video.addEventListener('loadedmetadata', function () {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+            });
+        })
+        .catch(function (error) {
+            console.error('Error accessing the webcam: ', error);
+        });
+
+    $('#captureBtn').click(function () {
+        if (!isCaptureEnabled) {
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            isCaptureEnabled = true;
+            $(this).text('Save Photo');
+        } else {
+            var x = event.offsetX;
+            var y = event.offsetY;
+            var image_data = canvas.toDataURL('image/png');
+
+            $.ajax({
+                type: 'POST',
+                url: '/capture',
+                data: {
+                    image: image_data,
+                    x: x,
+                    y: y
+                },
+                success: function (response) {
+                    alert(response);
+                }
+            });
+
+            // Hide video, show captured image, and display the capture button again
+            video.style.display = 'none';
+            canvas.style.display = 'block';
+            $(this).hide();
+        }
+    });
+
+    canvas.addEventListener('click', function (event) {
+        if (isCaptureEnabled) {
+            var rect = canvas.getBoundingClientRect();
+            var x = event.clientX - rect.left;
+            var y = event.clientY - rect.top;
+            var image_data = canvas.toDataURL('image/png');
+
+            $.ajax({
+                type: 'POST',
+                url: '/capture',
+                data: {
+                    image: image_data,
+                    x: x,
+                    y: y
+                },
+                success: function (response) {
+                    alert(response);
+                }
+            });
+
+            // Hide video, show captured image, and display the capture button again
+            video.style.display = 'none';
+            canvas.style.display = 'block';
+            $('#captureBtn').hide();
+        }
+    });
+});
+</script>
+    
+</head>
+<body>
+    <h1>Webcam Capture</h1>
+    <div>
+        <video id="video" autoplay></video>
+        <canvas id="canvas"></canvas>
+    </div>
+    <button id="captureBtn">Capture Photo</button>
+</body>
+</html>
